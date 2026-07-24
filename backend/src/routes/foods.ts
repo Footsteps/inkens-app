@@ -3,13 +3,21 @@ import { db } from "../config/database.js";
 
 const foodsRouter = Router();
 
+type FoodIntoleranceRow = {
+    food_name: string;
+    intolerance_name: string;
+    tolerance_rating: "safe" | "limited" | "unsafe" | "unknown";
+    food_intolerance_rating: "safe" | "limited" | "unsafe" | "unknown";
+    food_intolerance_rule: string;
+};
+
 foodsRouter.get(
   "/:foodName/intolerances/:intoleranceName",
   async (req, res) => {
     const { foodName, intoleranceName } = req.params;
 
     try {
-      const result = await db.query(
+      const result = await db.query<FoodIntoleranceRow>(
         `
         SELECT 
           f.name AS food_name,
@@ -31,7 +39,13 @@ foodsRouter.get(
         [foodName, intoleranceName],
       );
 
-      const rules = result.rows.map((row) => ({
+      if (result?.rows.length === 0) {
+        return res.status(404).json({
+          message: "Lebensmittel oder Intoleranz nicht gefunden"
+        })
+      }
+
+      const rules = result?.rows.map((row) => ({
         rating: row.food_intolerance_rating,
         rule: row.food_intolerance_rule,
       }));
